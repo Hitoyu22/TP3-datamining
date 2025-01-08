@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Datasets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <header class="bg-blue-600 text-white py-6">
+        <div class="container mx-auto text-center">
+            <h1 class="text-4xl font-extrabold">Liste des Datasets</h1>
+            <p class="mt-2 text-lg">Nombre total de datasets : {{ total_count }}</p>
+            <a href="/mon-dataset">Voir mon dataset étudié</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-8 px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            {% for dataset in datasets %}
+<div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl transition-shadow">
+    <h2 class="text-2xl font-semibold text-blue-700">
+        {% if dataset['metas'] and dataset['metas']['default'] and dataset['metas']['default']['title'] %}
+            {{ dataset['metas']['default']['title'] }}
+        {% else %}
+            Titre non disponible
+        {% endif %}
+    </h2>
+
+    <div class="space-y-2">
+        <p class="line-clamp-3">
+            {{ dataset['metas']['default']['description'] }}
+        </p>
+        <p class="text-blue-600 hover:underline">
+            ... <a href="/dataset/{{ dataset['dataset_uid'] }}">Voir plus</a>
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h3 class="text-xl font-medium text-gray-700">Métadonnées :</h3>
+        <ul class="list-disc pl-6 mt-2 text-gray-600">
+            <li>
+                <strong>Licence:</strong>
+                {% if dataset['metas']['default'] and dataset['metas']['default']['license'] %}
+                    {{ dataset['metas']['default']['license'] }}
+                {% else %}
+                    Licence non disponible
+                {% endif %}
+            </li>
+            <li>
+                <strong>Date de modification:</strong>
+                {% if dataset['metas']['default'] and dataset['metas']['default']['modified'] %}
+                    {{ dataset['metas']['default']['modified'] }}
+                {% else %}
+                    Date non disponible
+                {% endif %}
+            </li>
+            <li>
+                <strong>Nombre d'enregistrements:</strong>
+                {% if dataset['metas']['default'] and dataset['metas']['default']['records_count'] %}
+                    {{ dataset['metas']['default']['records_count'] }}
+                {% else %}
+                    Nombre non disponible
+                {% endif %}
+            </li>
+            <li>
+                <strong>Thème:</strong>
+                {% if dataset['metas']['default'] and dataset['metas']['default']['theme'] %}
+                    {{ dataset['metas']['default']['theme'] | join(', ') }}
+                {% else %}
+                    Thème non disponible
+                {% endif %}
+            </li>
+            <li>
+                <strong>Territoire:</strong>
+                {% if dataset['metas']['default'] and dataset['metas']['default']['territory'] %}
+                    {{ dataset['metas']['default']['territory'] | join(', ') }}
+                {% else %}
+                    Territoire non disponible
+                {% endif %}
+            </li>
+        </ul>
+    </div>
+
+    <div class="mt-6 flex justify-between items-center">
+        <a href="https://data.opendatasoft.com/explore/dataset/{{dataset['dataset_id']}}/information/"
+           class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+           Voir Détails
+        </a>
+        
+        <a href="https://data.opendatasoft.com/api/explore/v2.1/catalog/datasets/{{ dataset['dataset_id'] }}/exports/csv?delimiter=%3B&list_separator=%2C&quote_all=false&with_bom=true"
+           class="text-blue-600 hover:underline" target="_blank">
+           Télécharger
+        </a>
+    </div>
+</div>
+{% endfor %}
+
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            {% if prev_offset %}
+            <a href="/?offset={{ prev_offset }}&limit={{ limit }}"
+                class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-300">
+                Page précédente
+            </a>
+            {% endif %}
+
+            {% if next_offset %}
+            <a href="/?offset={{ next_offset }}&limit={{ limit }}"
+                class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+                Page suivante
+            </a>
+            {% endif %}
+        </div>
+    </main>
+
+    <footer class="bg-gray-200 text-center py-6 mt-12">
+        <p class="text-gray-600">&copy; 2025 Tous droits réservés - Mon Application Flask</p>
+    </footer>
+
+</body>
+
+</html>
