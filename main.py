@@ -1,12 +1,25 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from app.api_client import APIClient
 import pandas as pd
 from app.data_processor import DataProcessor
 from app.visualizer import Visualizer
+from app.prediction import RealEstateModel
 from shapely.geometry import shape
+from flask_cors import CORS
 
 app = Flask(__name__)
 api_client = APIClient(base_url='https://data.opendatasoft.com')
+
+CORS(app)
+cors = CORS(app, resource={
+    r"/*":{
+        "origins":"*"
+    }
+})
+
+
+dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=',', encoding='utf-8')
+print(dataset_clean.columns)
 
 @app.route('/')
 def index():
@@ -86,5 +99,38 @@ def dataset_details():
     else:
         return "Erreur : Impossible de télécharger le dataset."
 
+@app.after_request
+def add_cors_headers(response):
+    """Ajoute le header Access-Control-Allow-Origin."""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+    return response
+
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    """API pour prédire les loyers."""
+
+    dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=',', encoding='utf-8') 
+    model = RealEstateModel(dataset_clean)
+    model.prepare_data()
+    model.train_random_forest()
+
+
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Aucune donnée envoyée"}), 400
+
+        X_input = pd.DataFrame([data])
+
+        predicted_rent = model.predict(X_input)[0]
+
+        return jsonify({"predicted_rent": predicted_rent})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
+

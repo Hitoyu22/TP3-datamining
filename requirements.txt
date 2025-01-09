@@ -6,3 +6,4 @@ shapely
 matplotlib
 seaborn
 scikit-learn
+flask-cors

@@ -92,6 +92,15 @@ class DataProcessor:
         df_cleaned = df_cleaned.drop_duplicates()
 
         return df_cleaned.to_json(orient='records', lines=False)
+
+    def save_cleaned_data(self):
+
+        path = "datasets/dataset_clean.csv"
+
+        self.df.to_csv(path, index=False)
+
+        print(f"Le fichier {path} a été créé avec succès.")
+    
     
     def clean_data(self):
         """
@@ -102,4 +111,5 @@ class DataProcessor:
         self.handle_furnishing()
         self.convert_to_numeric()
         self.transform_geometries()
+        self.save_cleaned_data()
         return self.prepare_geo_data()

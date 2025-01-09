@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Détails du Dataset</title>
+    <title>Estimation de Loyer</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
     <div class="container mx-auto p-6">
+        <h1 class="text-4xl font-bold mb-6 text-center">Estimation de Loyer</h1>
+
+
         <h1 class="text-4xl font-bold mb-6 text-center">Détails du Dataset</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -29,22 +32,21 @@
             </div>
         </div>
 
-        <h2 class="text-3xl font-semibold mb-4 text-center">Estimez votre bien immobilier</h2>
         <form id="loyerForm" class="space-y-6 bg-white p-6 rounded-lg shadow-lg">
             <div>
                 <label for="epoque_construction" class="block text-lg font-medium">Époque de construction</label>
                 <select id="epoque_construction" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                    <option value="1991">Après 1990</option> 
+                    <option value="1991">Après 1990</option>
                     <option value="1980">1971-1990</option>
-                    <option value="1945">Avant 1946</option>
                     <option value="1958">1946-1970</option>
+                    <option value="1945">Avant 1946</option>
                 </select>
             </div>
 
             <div>
                 <label for="nombre_pieces" class="block text-lg font-medium">Nombre de pièces principales</label>
                 <select id="nombre_pieces" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                    <option value="1">1</option> 
+                    <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
                     <option value="4">4</option>
@@ -73,34 +75,52 @@
 
     <script>
         const rawData = '{{ json_data | tojson | safe }}';
-        
         const datasetVisualizations = JSON.parse(rawData.substring(1, rawData.length - 1));
 
         const quartierSelect = document.getElementById('numero_quartier');
-        datasetVisualizations.forEach(quartier => {
+        datasetVisualizations.forEach(q => {
             const option = document.createElement('option');
-            option.value = quartier.numero_quartier;
-            option.textContent = quartier.nom_quartier;
+            option.value = q.numero_quartier; 
+            option.textContent = q.nom_quartier;
             quartierSelect.appendChild(option);
         });
 
         document.getElementById('loyerForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const epoque_construction = document.getElementById('epoque_construction').value;
-            const nombre_pieces = document.getElementById('nombre_pieces').value;
-            const type_location = document.getElementById('type_location').value;
-            const numero_quartier = document.getElementById('numero_quartier').value;
+            const epoque_construction = parseInt(document.getElementById('epoque_construction').value, 10);
+            const nombre_pieces = parseInt(document.getElementById('nombre_pieces').value, 10);
+            const type_location = parseInt(document.getElementById('type_location').value, 10);
+            const numero_quartier = parseInt(document.getElementById('numero_quartier').value, 10);
 
-            const quartier = datasetVisualizations.find(q => q.numero_quartier == numero_quartier);
+            const quartier = datasetVisualizations.find(q => q.numero_quartier === numero_quartier);
             const secteur_geographique = quartier ? quartier.secteur_geographique : null;
 
-            console.log({
+            const data = {
                 epoque_construction,
-                nombre_pieces,
+                nombre_pieces_principales: nombre_pieces,
                 type_location,
                 numero_quartier,
                 secteur_geographique
+            };
+
+            const apiUrl = 'http://localhost:5000/predict';
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log(result);
+                alert(`Loyer estimé : ${result.predicted_rent} €`);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Une erreur est survenue lors de la prédiction.');
             });
         });
     </script>
