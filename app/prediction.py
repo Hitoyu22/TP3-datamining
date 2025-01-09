@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
+import numpy as np
 
 class RealEstateModel:
     def __init__(self, dataset):
@@ -22,14 +23,11 @@ class RealEstateModel:
         self.model.fit(self.X_train, self.y_train)
 
     def predict(self, X_input):
+        if self.model is None:
+            raise ValueError("Le modèle n'a pas encore été entraîné.")
         
-        if self.model is None:
-            raise ValueError("Le modèle n'a pas encore été entraîné.")
-        return self.model.predict(X_input)
-
-    def evaluate_model(self):
-        if self.model is None:
-            raise ValueError("Le modèle n'a pas encore été entraîné.")
-        y_pred = self.model.predict(self.X_test)
-        mae = mean_absolute_error(self.y_test, y_pred)
-        return mae
+        predictions = self.model.predict(X_input)
+        
+        predictions_rounded = np.round(predictions, 2)
+        
+        return predictions_rounded

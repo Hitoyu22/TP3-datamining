@@ -34,7 +34,7 @@ class Visualizer:
         for _, geometry in gdf.iterrows():
             ax.plot(*geometry['geometry'].boundary.xy, color='black', linewidth=0.8)
 
-        ax.set_title(f"Carte des {column} à Paris")
+        ax.set_title(f"Carte de la répartition du prix moyen du mètre carré en location sur Paris")
         ax.set_axis_off()
 
         image_folder = 'static/images'
@@ -64,8 +64,8 @@ class Visualizer:
         print("Création de l'histogramme...")
         plt.figure(figsize=(10, 6))
         data[column].plot(kind='hist', bins=30, color='skyblue', edgecolor='black')
-        plt.title(f"Histogramme des {column}")
-        plt.xlabel(f"{column}")
+        plt.title(f"Histogramme des références du prix du mètre carré en location sur Paris")
+        plt.xlabel(f"Prix du mètre carré par mois en location sur Paris")
         plt.ylabel("Fréquence")
         plt.grid(True)
 
@@ -80,41 +80,64 @@ class Visualizer:
 
         return histogram_path
     
-    def create_pie_chart(self, data, column='piece'):
+    def create_pie_chart(self, data, column='secteur_geographique'):
         """
-        Crée un diagramme circulaire pour représenter la proportion des types de pièces.
+        Crée un diagramme circulaire pour représenter la proportion des secteurs géographiques.
         :param data: DataFrame contenant les données.
         :param column: Nom de la colonne à analyser.
         """
         print("Création du diagramme circulaire...")
+        
+        sector_counts = data[column].value_counts()
+
         plt.figure(figsize=(8, 8))
-        data[column].value_counts().plot(kind='pie', autopct='%1.1f%%', startangle=90, colors=plt.cm.Paired.colors)
-        plt.title(f"Répartition des types de pièces ({column})")
+        wedges, texts = plt.pie(sector_counts, 
+                                startangle=90, 
+                                colors=plt.cm.Paired.colors, 
+                                labels=sector_counts.index, 
+                                wedgeprops={'edgecolor': 'black'})
+        
+        for text in texts:
+            text.set_visible(True)
+        
+        plt.title(f"Répartition des locations sur les secteurs de Paris")
         plt.ylabel("") 
 
+        plt.legend(wedges, sector_counts.index, title="Secteurs", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        
         piechart_path = 'static/images/piechart.png'
         print(f"Enregistrement du diagramme circulaire à: {piechart_path}")
         try:
-            plt.savefig(piechart_path, format='png')
+            plt.savefig(piechart_path, format='png', bbox_inches='tight')
             plt.close()
             print(f"Diagramme circulaire sauvegardé avec succès à {piechart_path}")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du diagramme circulaire: {e}")
 
         return piechart_path
+
     
-    def create_density_plot(self,data, column_x='min', hue='epoque'):
+    def create_density_plot(self, data, column_x='loyers_reference', hue='epoque_construction'):
         """
         Crée un graphique de densité pour analyser la distribution des loyers selon l'époque.
         :param data: DataFrame contenant les données.
         :param column_x: Nom de la colonne pour les valeurs numériques.
         :param hue: Nom de la colonne pour la couleur (catégories).
         """
+        label_mapping = {
+            1991: "Après 1990",
+            1980: "1971-1990",
+            1958: "1946-1970",
+            1945: "Avant 1946"
+        }
+
+        data[hue] = data[hue].map(label_mapping)
+
         print("Création du graphique de densité...")
         plt.figure(figsize=(10, 6))
         sns.kdeplot(data=data, x=column_x, hue=hue, fill=True, alpha=0.5, palette='muted')
-        plt.title(f"Distribution des {column_x} par {hue}")
-        plt.xlabel(column_x)
+        plt.title(f"Distribution des prix du mètre carré en location en fonction de l'époque de construction")
+        plt.xlabel(f"Prix du mètre carré en location")
         plt.ylabel("Densité")
         plt.grid(True)
 
@@ -128,6 +151,7 @@ class Visualizer:
             print(f"Erreur lors de la sauvegarde du graphique de densité: {e}")
 
         return densityplot_path
+
     
     def create_all_visualizations(self, gdf, data):
         """
@@ -139,7 +163,7 @@ class Visualizer:
         results = {}
         results['map'] = self.create_map(gdf)
         results['histogram'] = self.create_histogram(data, column='loyers_reference')
-        results['pie_chart'] = self.create_pie_chart(data, column='nombre_pieces_principales')
+        results['pie_chart'] = self.create_pie_chart(data, column='secteur_geographique')
         results['density_plot'] = self.create_density_plot(data, column_x='loyers_reference', hue='epoque_construction')
 
         return results

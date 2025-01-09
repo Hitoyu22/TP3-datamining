@@ -18,23 +18,20 @@ cors = CORS(app, resource={
 })
 
 
-dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=',', encoding='utf-8')
-print(dataset_clean.columns)
-
 @app.route('/')
 def index():
     """
     Affiche la page d'accueil avec la liste paginée des datasets.
     """
-    offset = int(request.args.get('offset', 0))  
-    limit = int(request.args.get('limit', 10))  
+    offset = int(request.args.get('offset', 1))  
+    limit = int(request.args.get('limit', 9))  
     
     datasets = api_client.get_datasets_with_pagination(offset=offset, limit=limit)
     
     total_count = datasets.get('total_count', 0) if datasets else 0
     
-    next_offset = offset + limit if offset + limit < total_count else None
-    prev_offset = offset - limit if offset > 0 else None
+    next_offset = offset + 1 if offset + limit < total_count else None
+    prev_offset = offset - 1 if offset > -1 else None
     
     print(datasets.get('results', []))
     print('\n')
@@ -88,6 +85,8 @@ def dataset_details():
 
             print(cleaned_json)
 
+            print(dataset_details)
+
             return render_template(
                 'mon-dataset.html',  
                 dataset_details=dataset_details,
@@ -112,7 +111,7 @@ def add_cors_headers(response):
 def predict():
     """API pour prédire les loyers."""
 
-    dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=',', encoding='utf-8') 
+    dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=';', encoding='utf-8') 
     model = RealEstateModel(dataset_clean)
     model.prepare_data()
     model.train_random_forest()

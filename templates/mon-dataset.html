@@ -3,74 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estimation de Loyer</title>
+    <title>{{ dataset_details['metas']['default']['title'] }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
     <div class="container mx-auto p-6">
-        <h1 class="text-4xl font-bold mb-6 text-center">Estimation de Loyer</h1>
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4">{{ dataset_details['metas']['default']['title'] }}</h1>
+            <p class="text-lg text-gray-700">{{ dataset_details['metas']['default']['description'] | safe }}</p>
+        </header>
 
+        <section class="mb-12">
+            <div class="gap-6 items-start">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-semibold mb-4">Informations Générales</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li><strong>Titre :</strong> {{ dataset_details['metas']['default']['title'] }}</li>
+                        <li><strong>Thème :</strong> {{ dataset_details['metas']['default']['theme'] | join(', ') }}</li>
+                        <li><strong>Mots-clés :</strong> {{ dataset_details['metas']['default']['keyword'] | join(', ') }}</li>
+                        <li><strong>Dernière modification :</strong> {{ dataset_details['metas']['default']['modified'] }}</li>
+                        <li><strong>Licence :</strong> <a href="{{ dataset_details['metas']['default']['license_url'] }}" target="_blank" class="text-blue-500">{{ dataset_details['metas']['default']['license'] }}</a></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
 
-        <h1 class="text-4xl font-bold mb-6 text-center">Détails du Dataset</h1>
+        <section class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex justify-center">
+                    <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/map.png') }}" alt="Carte des loyers de référence">
+                </div>
+                <div>
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/histogram.png') }}" alt="Histogramme des loyers de référence">
+                </div>
+            </div>
+        </section>
+        
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6">Visualisations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/piechart.png') }}" alt="Répartition des loyers">
+                </div>
+                <div>
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/densityplot.png') }}" alt="Densité des loyers">
+                </div>
+            </div>
+        </section>
+        
+        
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-                <h2 class="text-2xl font-semibold mb-4">Carte des loyers de référence</h2>
-                <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/map.png') }}" alt="Carte des loyers de référence">
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold mb-4">Histogramme des loyers de référence</h2>
-                <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/histogram.png') }}" alt="Histogramme des loyers de référence">
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold mb-4">Pie chart</h2>
-                <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/piechart.png') }}" alt="Pie chart">
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold mb-4">Plot</h2>
-                <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/densityplot.png') }}" alt="Plot">
-            </div>
-        </div>
+        <section>
+            <h2 class="text-3xl font-semibold mb-6">Estimez votre bien</h2>
+            <p>Découvrez l'estimation du prix du mètre carré par mois pour la location de votre bien sur Paris</p>
+            <form id="loyerForm" class="space-y-6 bg-white p-6 rounded-lg shadow-lg">
+                <div>
+                    <label for="epoque_construction" class="block text-lg font-medium">Époque de construction</label>
+                    <select id="epoque_construction" class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white">
+                        <option value="1991">Après 1990</option>
+                        <option value="1980">1971-1990</option>
+                        <option value="1958">1946-1970</option>
+                        <option value="1945">Avant 1946</option>
+                    </select>
+                </div>
 
-        <form id="loyerForm" class="space-y-6 bg-white p-6 rounded-lg shadow-lg">
-            <div>
-                <label for="epoque_construction" class="block text-lg font-medium">Époque de construction</label>
-                <select id="epoque_construction" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                    <option value="1991">Après 1990</option>
-                    <option value="1980">1971-1990</option>
-                    <option value="1958">1946-1970</option>
-                    <option value="1945">Avant 1946</option>
-                </select>
-            </div>
+                <div>
+                    <label for="nombre_pieces" class="block text-lg font-medium">Nombre de pièces principales</label>
+                    <select id="nombre_pieces" class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                    </select>
+                </div>
 
-            <div>
-                <label for="nombre_pieces" class="block text-lg font-medium">Nombre de pièces principales</label>
-                <select id="nombre_pieces" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                </select>
-            </div>
+                <div>
+                    <label for="type_location" class="block text-lg font-medium">Type de location</label>
+                    <select id="type_location" class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white">
+                        <option value="0">Vide</option>
+                        <option value="1">Meublé</option>
+                    </select>
+                </div>
 
-            <div>
-                <label for="type_location" class="block text-lg font-medium">Type de location</label>
-                <select id="type_location" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                    <option value="0">Vide</option>
-                    <option value="1">Meublé</option>
-                </select>
-            </div>
+                <div>
+                    <label for="numero_quartier" class="block text-lg font-medium">Quartier</label>
+                    <select id="numero_quartier" class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"></select>
+                </div>
 
-            <div>
-                <label for="numero_quartier" class="block text-lg font-medium">Quartier</label>
-                <select id="numero_quartier" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                </select>
-            </div>
-
-            <div class="text-center">
-                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600">Estimer</button>
-            </div>
-        </form>
+                <div class="text-center">
+                    <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600">Estimer</button>
+                </div>
+            </form>
+        </section>
     </div>
 
     <script>
@@ -116,7 +140,7 @@
             .then(response => response.json())
             .then(result => {
                 console.log(result);
-                alert(`Loyer estimé : ${result.predicted_rent} €`);
+                alert(`Loyer estimé : ${result.predicted_rent} €/m²/mois `);
             })
             .catch(error => {
                 console.error('Erreur:', error);

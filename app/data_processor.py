@@ -97,7 +97,7 @@ class DataProcessor:
 
         path = "datasets/dataset_clean.csv"
 
-        self.df.to_csv(path, index=False)
+        self.df.to_csv(path, index=False, sep=";")
 
         print(f"Le fichier {path} a été créé avec succès.")
     
