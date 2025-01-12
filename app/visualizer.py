@@ -4,17 +4,15 @@ import os
 import seaborn as sns
 from shapely.geometry import shape
 
+chemin_dossier_images = 'static/images'
+
 class Visualizer:
     def __init__(self):
         pass
 
-    def create_map(self, gdf, column='loyers_reference'):
+    def carte_choroplethe(self, gdf, colonne='loyers_reference'):
         """
-        Crée une carte de type choroplète avec une colonne spécifiée du GeoDataFrame
-        et sauvegarde l'image dans un dossier.
-        :param gdf: GeoDataFrame contenant les données géographiques.
-        :param column: Nom de la colonne à utiliser pour la visualisation des couleurs.
-        :return: Chemin vers l'image sauvegardée.
+        Méthode pour créer une carte choroplèthe à partir d'un GeoDataFrame.
         """
         print("Création de la carte...")
 
@@ -26,146 +24,142 @@ class Visualizer:
         gdf = gdf.set_crs("EPSG:4326")  
         gdf = gdf.to_crs(epsg=3857)  
 
-        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        figure, axe = plt.subplots(1, 1, figsize=(10, 10))
 
-        print(f"Affichage de la carte pour la colonne: {column}")
-        gdf.plot(column=column, ax=ax, legend=True, cmap='coolwarm', linewidth=0.8)
+        print(f"Affichage de la carte pour la colonne: {colonne}")
+        gdf.plot(column=colonne, ax=axe, legend=True, cmap='coolwarm', linewidth=0.8)
 
-        for _, geometry in gdf.iterrows():
-            ax.plot(*geometry['geometry'].boundary.xy, color='black', linewidth=0.8)
+        for _, geometrie in gdf.iterrows():
+            axe.plot(*geometrie['geometry'].boundary.xy, color='black', linewidth=0.8)
 
-        ax.set_title(f"Carte de la répartition du prix moyen du mètre carré en location sur Paris")
-        ax.set_axis_off()
+        axe.set_title("Carte de la répartition du prix moyen du mètre carré en location sur Paris")
+        axe.set_axis_off()
 
-        image_folder = 'static/images'
-        if not os.path.exists(image_folder):
-            print(f"Le dossier {image_folder} n'existe pas. Création du dossier.")
-            os.makedirs(image_folder)
+        if not os.path.exists(chemin_dossier_images):
+            print(f"Le dossier {chemin_dossier_images} n'existe pas. Création du dossier.")
+            os.makedirs(chemin_dossier_images)
 
-        map_path = os.path.join(image_folder, 'map.png')
-        print(f"Enregistrement de la carte à: {map_path}")
+        chemin_carte = os.path.join(chemin_dossier_images, 'carte.png')
+        print(f"Enregistrement de la carte à: {chemin_carte}")
         try:
-            plt.savefig(map_path, format='png')
+            plt.savefig(chemin_carte, format='png')
             plt.close() 
-            print(f"Carte sauvegardée avec succès à {map_path}")
+            print(f"Carte sauvegardée avec succès à {chemin_carte}")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de la carte: {e}")
 
-        return map_path
-
-    def create_histogram(self, data, column):
+    def histogramme(self, donnees, colonne="loyers_reference"):
         """
-        Crée un histogramme pour la colonne spécifiée du dataset.
-        Sauvegarde l'image dans un dossier.
-        :param data: DataFrame contenant les données à visualiser.
-        :param column: Nom de la colonne à utiliser pour l'histogramme.
-        :return: Chemin vers l'image sauvegardée.
+        Méthode pour créer un histogramme à partir d'un DataFrame.
         """
         print("Création de l'histogramme...")
         plt.figure(figsize=(10, 6))
-        data[column].plot(kind='hist', bins=30, color='skyblue', edgecolor='black')
-        plt.title(f"Histogramme des références du prix du mètre carré en location sur Paris")
-        plt.xlabel(f"Prix du mètre carré par mois en location sur Paris")
+        donnees[colonne].plot(kind='hist', bins=30, color='skyblue', edgecolor='black')
+        plt.title("Histogramme des références du prix du mètre carré en location sur Paris")
+        plt.xlabel("Prix du mètre carré par mois en location sur Paris")
         plt.ylabel("Fréquence")
         plt.grid(True)
 
-        histogram_path = 'static/images/histogram.png'
-        print(f"Enregistrement de l'histogramme à: {histogram_path}")
+        chemin_histogramme = os.path.join(chemin_dossier_images, 'histogramme.png')
+        print(f"Enregistrement de l'histogramme à: {chemin_histogramme}")
         try:
-            plt.savefig(histogram_path, format='png')
+            plt.savefig(chemin_histogramme, format='png')
             plt.close()
-            print(f"Histogramme sauvegardé avec succès à {histogram_path}")
+            print(f"Histogramme sauvegardé avec succès à {chemin_histogramme}")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de l'histogramme: {e}")
-
-        return histogram_path
     
-    def create_pie_chart(self, data, column='secteur_geographique'):
+    def diagramme_circulaire(self, donnees, colonne='secteur_geographique'):
         """
-        Crée un diagramme circulaire pour représenter la proportion des secteurs géographiques.
-        :param data: DataFrame contenant les données.
-        :param column: Nom de la colonne à analyser.
+        Méthode pour créer un diagramme circulaire à partir d'un DataFrame.
         """
         print("Création du diagramme circulaire...")
         
-        sector_counts = data[column].value_counts()
+        repartition_secteurs = donnees[colonne].value_counts()
 
         plt.figure(figsize=(8, 8))
-        wedges, texts = plt.pie(sector_counts, 
+        parts, textes = plt.pie(repartition_secteurs, 
                                 startangle=90, 
                                 colors=plt.cm.Paired.colors, 
-                                labels=sector_counts.index, 
+                                labels=repartition_secteurs.index, 
                                 wedgeprops={'edgecolor': 'black'})
         
-        for text in texts:
-            text.set_visible(True)
+        for texte in textes:
+            texte.set_visible(True)
         
-        plt.title(f"Répartition des locations sur les secteurs de Paris")
+        plt.title("Répartition des locations sur les secteurs de Paris")
         plt.ylabel("") 
 
-        plt.legend(wedges, sector_counts.index, title="Secteurs", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
-        
-        piechart_path = 'static/images/piechart.png'
-        print(f"Enregistrement du diagramme circulaire à: {piechart_path}")
+        chemin_piechart = os.path.join(chemin_dossier_images, 'diagramme_circulaire.png')
+        print(f"Enregistrement du diagramme circulaire à: {chemin_piechart}")
         try:
-            plt.savefig(piechart_path, format='png', bbox_inches='tight')
+            plt.savefig(chemin_piechart, format='png', bbox_inches='tight')
             plt.close()
-            print(f"Diagramme circulaire sauvegardé avec succès à {piechart_path}")
+            print(f"Diagramme circulaire sauvegardé avec succès à {chemin_piechart}")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du diagramme circulaire: {e}")
 
-        return piechart_path
-
-    
-    def create_density_plot(self, data, column_x='loyers_reference', hue='epoque_construction'):
+    def densite(self, donnees, colonne_x='loyers_reference', colonne_y='epoque_construction'):
         """
-        Crée un graphique de densité pour analyser la distribution des loyers selon l'époque.
-        :param data: DataFrame contenant les données.
-        :param column_x: Nom de la colonne pour les valeurs numériques.
-        :param hue: Nom de la colonne pour la couleur (catégories).
+        Méthode pour créer un graphique de densité à partir d'un DataFrame.
         """
-        label_mapping = {
+        etiquettes = {
             1991: "Après 1990",
             1980: "1971-1990",
             1958: "1946-1970",
             1945: "Avant 1946"
         }
 
-        data[hue] = data[hue].map(label_mapping)
+        donnees[colonne_y] = donnees[colonne_y].map(etiquettes)
 
         print("Création du graphique de densité...")
         plt.figure(figsize=(10, 6))
-        sns.kdeplot(data=data, x=column_x, hue=hue, fill=True, alpha=0.5, palette='muted')
-        plt.title(f"Distribution des prix du mètre carré en location en fonction de l'époque de construction")
-        plt.xlabel(f"Prix du mètre carré en location")
+        sns.kdeplot(data=donnees, x=colonne_x, hue=colonne_y, fill=True, alpha=0.5, palette='muted')
+        plt.title("Distribution des prix du mètre carré en location en fonction de l'époque de construction")
+        plt.xlabel("Prix du mètre carré en location")
         plt.ylabel("Densité")
         plt.grid(True)
 
-        densityplot_path = 'static/images/densityplot.png'
-        print(f"Enregistrement du graphique de densité à: {densityplot_path}")
+        chemin_densityplot = os.path.join(chemin_dossier_images, 'graphe_densite.png')
+        print(f"Enregistrement du graphique de densité à: {chemin_densityplot}")
         try:
-            plt.savefig(densityplot_path, format='png')
+            plt.savefig(chemin_densityplot, format='png')
             plt.close()
-            print(f"Graphique de densité sauvegardé avec succès à {densityplot_path}")
+            print(f"Graphique de densité sauvegardé avec succès à {chemin_densityplot}")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du graphique de densité: {e}")
 
-        return densityplot_path
-
-    
-    def create_all_visualizations(self, gdf, data):
+    def graphique_courbe(self, donnees, colonne_annee="annee", colonne_secteur="secteur_geographique", colonne_loyers="loyers_reference"):
         """
-        Crée toutes les visualisations en une seule méthode et renvoie les chemins des fichiers créés.
-        :param gdf: GeoDataFrame contenant les données géographiques.
-        :param data: DataFrame contenant les données pour l'histogramme, le diagramme circulaire et le graphique de densité.
-        :return: Dictionnaire avec les chemins des fichiers générés.
+        Méthode pour créer un graphique en courbes à partir d'un DataFrame.
         """
-        results = {}
-        results['map'] = self.create_map(gdf)
-        results['histogram'] = self.create_histogram(data, column='loyers_reference')
-        results['pie_chart'] = self.create_pie_chart(data, column='secteur_geographique')
-        results['density_plot'] = self.create_density_plot(data, column_x='loyers_reference', hue='epoque_construction')
+        donnees_groupes = donnees.groupby([colonne_annee, colonne_secteur])[colonne_loyers].mean().unstack()
 
-        return results
+        print("Création du graphique en courbes...")
+        plt.figure(figsize=(12, 8))
+        donnees_groupes.plot(kind="line", marker="o", figsize=(12, 8))
+        plt.title("Prix des loyers références par secteur géographique et par année", fontsize=16)
+        plt.xlabel("Année", fontsize=14)
+        plt.ylabel("Loyers références (moyenne)", fontsize=14)
+        plt.legend(title="Secteur Géographique", title_fontsize=12)
+        plt.grid(True, linestyle="--", alpha=0.6)
+        plt.tight_layout()
 
+        chemin_courbe = os.path.join(chemin_dossier_images, 'graphique_courbe.png')
+        print(f"Enregistrement du graphique en courbes à: {chemin_courbe}")
+        try:
+            plt.savefig(chemin_courbe, format='png')
+            plt.close()
+            print(f"Graphique en courbes sauvegardé avec succès à {chemin_courbe}")
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde du graphique en courbes: {e}")
 
+    def creer_toutes_visualisations(self, gdf, donnees):
+        """
+        Méthode pour générer toutes les visualisations à partir des données.
+        """
+        self.carte_choroplethe(gdf)
+        self.histogramme(donnees, colonne='loyers_reference')
+        self.diagramme_circulaire(donnees, colonne='secteur_geographique')
+        self.densite(donnees, colonne_x='loyers_reference', colonne_y='epoque_construction')
+        self.graphique_courbe(donnees)

@@ -31,10 +31,10 @@
         <section class="mb-12">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex justify-center">
-                    <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/map.png') }}" alt="Carte des loyers de référence">
+                    <img class="w-full rounded-lg shadow-lg" src="{{ url_for('static', filename='images/carte.png') }}" alt="Carte des loyers de référence">
                 </div>
                 <div>
-                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/histogram.png') }}" alt="Histogramme des loyers de référence">
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/histogramme.png') }}" alt="Histogramme des loyers de référence">
                 </div>
             </div>
         </section>
@@ -43,11 +43,31 @@
             <h2 class="text-3xl font-semibold mb-6">Visualisations</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/piechart.png') }}" alt="Répartition des loyers">
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/diagramme_circulaire.png') }}" alt="Répartition des loyers">
                 </div>
                 <div>
-                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/densityplot.png') }}" alt="Densité des loyers">
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/graphe_densite.png') }}" alt="Densité des loyers">
                 </div>
+            </div>
+        </section>
+
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6">Visualisations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/graphique_courbe.png') }}" alt="Répartition des loyers">
+                </div>
+                <div>
+                    <img class="w-full object-contain" src="{{ url_for('static', filename='images/prediction.png') }}" alt="Densité des loyers">
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6">Modèle de prédiction</h2>
+            <p>Vous pouvez télécharger ci-dessous le rapport de l'entrainement du modèle de prédiction sur les données.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <a href="{{ url_for('static', filename='report.pdf') }}" class="text-blue-500" target="_blank">Accéder au rapport</a>
             </div>
         </section>
         
@@ -140,7 +160,7 @@
             .then(response => response.json())
             .then(result => {
                 console.log(result);
-                alert(`Loyer estimé : ${result.predicted_rent} €/m²/mois `);
+                alert(`Loyer estimé : ${result.prediction} €/m²/mois `);
             })
             .catch(error => {
                 console.error('Erreur:', error);

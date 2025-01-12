@@ -3,13 +3,15 @@ from app.api_client import APIClient
 import pandas as pd
 from app.data_processor import DataProcessor
 from app.visualizer import Visualizer
-from app.prediction import RealEstateModel
+from app.prediction import modeleDePrediction
 from shapely.geometry import shape
 from flask_cors import CORS
 
+# Initialisation de l'application Flask
 app = Flask(__name__)
 api_client = APIClient(base_url='https://data.opendatasoft.com')
 
+# Configuration de CORS (permettre les requêtes depuis n'importe quelle origine)
 CORS(app)
 cors = CORS(app, resource={
     r"/*":{
@@ -17,16 +19,19 @@ cors = CORS(app, resource={
     }
 })
 
-
+# Route pour la page d'accueil '/'
 @app.route('/')
 def index():
     """
-    Affiche la page d'accueil avec la liste paginée des datasets.
+    Ici on récupère par API la liste des dataset en fonction de la page et du nombre demandé et on les affiche sur le template index.html
     """
+
+    # Récupération des paramètres de pagination
     offset = int(request.args.get('offset', 1))  
     limit = int(request.args.get('limit', 9))  
-    
-    datasets = api_client.get_datasets_with_pagination(offset=offset, limit=limit)
+
+    # Récupération des datasets avec pagination
+    datasets = api_client.liste_dataset_avec_pagination(offset=offset, limit=limit)
     
     total_count = datasets.get('total_count', 0) if datasets else 0
     
@@ -38,6 +43,7 @@ def index():
     for dataset in datasets.get('results', []):
         print(dataset.get('metas', {}))
 
+    # Préparation du rendu HTML en envoyant les données nécessaires à l'html
     return render_template(
         'index.html',
         datasets=datasets.get('results', []),
@@ -48,21 +54,37 @@ def index():
         prev_offset=prev_offset
     )
 
+# Route pour la page de détails d'un dataset '/mon-dataset' qui correspond au dataset sur lequel j'ai travaillé
 @app.route('/mon-dataset')
 def dataset_details():
     """
-    Affiche les détails d'un dataset spécifique avec une carte et un histogramme.
+    Ici plusieurs traitements sont effectués:
+     - Téléchargement du dataset que j'ai choisi
+     - Nettoyage des données de ce dataset (Adaptation des données, vérifications de la cohérence, colonnes renommées...)
+     - Création d'un modèle de prédiction (pour permettre une simulation de prédiction de loyer)
+     - Création de visualisations (carte choroplèthe, histogramme...) à partir du dataset clean 
+
+     Plusieurs fichiers sont créées ici :
+     - Un fichier csv des données nettoyées
+     - un fichier de log avec toutes les étapes de nettoyages qui ont eu lieu 
+     - Les images des visualisations
+     - report.pdf : le rapport complet sur l'analyse des données, les colonnes utilisées, l'entraînement du modèle, son efficacité et le graphique
+     - model.pkl : le modèle de prédiction sauvegardé
     """
     global cleaned_gdf
 
+    #Définition de l'identifiant du dataset
     dataset_id = "logement-encadrement-des-loyers@parisdata"
     
-    dataset_path = api_client.download_dataset(dataset_id, 'csv', force_download=False)
+    # Téléchargement du dataset
+    dataset_path = api_client.telechargement_dataset(dataset_id, 'csv', force_download=False)
 
-    dataset_details = api_client.get_dataset_details(dataset_id)
+    # Récupération des détails du dataset pour les envoyer aux template mon-dataset.html pour afficher quelques informations sur le dataset
+    dataset_details = api_client.recuperation_dataset_details(dataset_id)
 
     if dataset_path:
         try:
+            # Lecture du dataset
             df = pd.read_csv(dataset_path, sep=';', encoding='utf-8')
             print("Dataset chargé avec succès.")
         except pd.errors.ParserError as e:
@@ -70,24 +92,40 @@ def dataset_details():
             return "Erreur lors du traitement du fichier."
 
         print("Début du nettoyage des données...")
+
+        # Appel de la classe DataProcessor pour nettoyer les données
         processor = DataProcessor(df)
-        processor.clean_data()
+        processor.nettoyage()
+
+        # Récupération des données nettoyées
 
         dataset_clean = processor.df
-        cleaned_json = processor.get_cleaned_json() 
+
+        # Récupération des données utiles pour le formulaire côté front au format JSON (plus facile à utiliser en JS)
+        cleaned_json = processor.creation_json() 
+
+        # Création du modèle de prédiction avec la classe modeleDePrediction
+        model = modeleDePrediction(dataset_clean)
+
+        # Entrainement du modèle et sauvegarde du modèle dans /static/model.pkl et création d'un rapport dans /static/report.pdf
+        model.generation_du_modele(model_file_path="static/model.pkl", pdf_report_path="static/report.pdf")
 
         if 'geo_shape' in dataset_clean.columns:
+
+            # Création de la colonne 'geometry' pour les données géographiques qui ont été adaptées pour être utilisées dans la carte choroplèthe
             dataset_clean['geometry'] = dataset_clean['geo_shape'].apply(lambda x: shape(eval(x)))
 
+            # Création des visualisations avec la classe Visualizer
             visualizer = Visualizer()
 
-            visualizer.create_all_visualizations(dataset_clean, dataset_clean)
+            visualizer.creer_toutes_visualisations(dataset_clean, dataset_clean)
 
             print(cleaned_json)
 
             print(dataset_details)
 
-            return render_template(
+            # Transmission des données nécessaires à l'html pour afficher les visualisations et les informations sur le dataset
+            return render_template( 
                 'mon-dataset.html',  
                 dataset_details=dataset_details,
                 json_data=cleaned_json 
@@ -98,6 +136,7 @@ def dataset_details():
     else:
         return "Erreur : Impossible de télécharger le dataset."
 
+# Préparation des headers CORS pour permettre les requêtes depuis n'importe quelle origine
 @app.after_request
 def add_cors_headers(response):
     """Ajoute le header Access-Control-Allow-Origin."""
@@ -106,27 +145,29 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
     return response
 
-
+# Route pour prédire les loyers '/predict', elle sera uniquement utilisé dans le javascript de la page
 @app.route('/predict', methods=['POST'])
 def predict():
-    """API pour prédire les loyers."""
+    """Ici on récupère les informations envoyées par le formulaire de prédiction et on renvoie la prédiction de loyer."""
 
-    dataset_clean = pd.read_csv('datasets/dataset_clean.csv', sep=';', encoding='utf-8') 
-    model = RealEstateModel(dataset_clean)
-    model.prepare_data()
-    model.train_random_forest()
 
+    # Chargement du modèle de prédiction
+    model = modeleDePrediction(dataset=None) 
+    model.load_model(file_path="static/model.pkl")
+    
 
     try:
         data = request.json
         if not data:
             return jsonify({"error": "Aucune donnée envoyée"}), 400
-
+        # Création d'un DataFrame à partir des données envoyées
         X_input = pd.DataFrame([data])
 
-        predicted_rent = model.predict(X_input)[0]
+        # Prédiction du loyer
+        prediction = model.prediction(X_input)[0]
 
-        return jsonify({"predicted_rent": predicted_rent})
+        # Renvoi de la prédiction au format JSON
+        return jsonify({"prediction": prediction})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

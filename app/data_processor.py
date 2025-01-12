@@ -1,21 +1,35 @@
-import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import geopandas as gpd
+import pandas as pd
+import os
+from datetime import datetime
 from shapely.geometry import shape
 
+
+# Classe pour le traitement des données
 class DataProcessor:
     def __init__(self, df):
         """
-        Initialise la classe avec un DataFrame.
-        :param df: DataFrame à nettoyer
+        Initialisation de la classe DataProcessor.
+
         """
         self.df = df
-
+        self.report = {} 
         print("Colonnes du DataFrame:", self.df.columns)
     
-    def rename_columns(self):
+    def ajouter_au_rapport(self, step_name, details):
         """
-        Renomme les colonnes du DataFrame pour les rendre plus explicites et cohérentes.
+        
+         Méthode que j'ai ajouté pour ajouter les informations du rapport pour écrire le fichier de log de nettoyage des données.
+
         """
+        self.report[step_name] = details
+    
+    def renommer_colonnes(self):
+        """
+            Méthode pour renommer les colonnes du DataFrame.
+                """
+        old_columns = self.df.columns
         self.df.rename(columns={
             'annee': 'annee',
             'id_zone': 'secteur_geographique', 
@@ -32,31 +46,36 @@ class DataProcessor:
             'geo_shape': 'geo_shape',
             'geo_point_2d': 'geo_point_2d',
         }, inplace=True)
+        
+        new_columns = self.df.columns
+        self.ajouter_au_rapport('Renommage des colonnes', f"Colonnes renommées: {list(set(new_columns) - set(old_columns))}")
     
-    def check_missing_values(self):
+    def verifcer_valeurs_manquantes(self):
         """
-        Vérifie si des valeurs manquantes existent dans le DataFrame et ajuste les colonnes si nécessaire.
-        Remplit les valeurs manquantes avec la moyenne pour les colonnes numériques.
+        Méthode pour vérifier les valeurs manquantes dans le DataFrame et les remplacer par la moyenne.
         """
+
         missing_values = self.df.isna().sum()
-        print(f"Valeurs manquantes par colonne:\n{missing_values}")
+        missing_report = missing_values[missing_values > 0].to_dict()
         
         self.df['loyers_reference'] = self.df['loyers_reference'].fillna(self.df['loyers_reference'].mean())
         self.df['loyers_majorés'] = self.df['loyers_majorés'].fillna(self.df['loyers_majorés'].mean())
         self.df['loyers_minores'] = self.df['loyers_minores'].fillna(self.df['loyers_minores'].mean())
         self.df['nombre_pieces_principales'] = self.df['nombre_pieces_principales'].fillna(self.df['nombre_pieces_principales'].mean())
+        
+        self.ajouter_au_rapport('Valeurs manquantes', missing_report)
     
-    def handle_furnishing(self):
+    def conversion_type_location(self):
         """
-        Convertit la colonne 'type_location' en valeurs binaires : 1 pour meublé, 0 pour non meublé.
-        Remplace les valeurs vides par None.
+        Méthode pour convertir la colonne 'type_location' en valeurs numériques (0 ou 1).
         """
         self.df['type_location'] = self.df['type_location'].map({'meublé': 1, 'non meublé': 0, '': None})
     
-    def convert_to_numeric(self):
+    def conversion_numerique(self):
         """
-        Convertit les colonnes pertinentes en types numériques.
+        Méhode pour convertir les colonnes pertinentes en types numériques.
         """
+        conversion_report = {}
         self.df['loyers_reference'] = pd.to_numeric(self.df['loyers_reference'], errors='coerce')
         self.df['loyers_majorés'] = pd.to_numeric(self.df['loyers_majorés'], errors='coerce')
         self.df['loyers_minores'] = pd.to_numeric(self.df['loyers_minores'], errors='coerce')
@@ -67,49 +86,96 @@ class DataProcessor:
             '1971-1990': 1980,
             '1946-1970': 1958
         })
-
-    def transform_geometries(self):
-        """
-        Transforme la colonne 'geo_shape' en objets géométriques.
-        """
-        self.df['geometry'] = self.df['geo_shape'].apply(lambda x: shape(eval(x)))  
+        conversion_report['epoque_construction'] = self.df['epoque_construction'].dtype
+        
+        self.ajouter_au_rapport('Types de données après conversion', conversion_report)
     
-    def prepare_geo_data(self):
+    def conversion_geometrie(self):
         """
-        Crée un GeoDataFrame et applique la projection appropriée pour la cartographie.
+        Méthode pour transformer la colonne 'geo_shape' en objets géométriques avec la librairie shapely.
+        """
+        self.df['geometry'] = self.df['geo_shape'].apply(lambda x: shape(eval(x)))
+        self.ajouter_au_rapport('Transformation des géométries', 'Géométries transformées avec succès.')
+    
+    def preparation_geoDataframe(self):
+        """
+        Méthode pour créer un GeoDataFrame et applique la projection appropriée pour la cartographie.
         """
         gdf = gpd.GeoDataFrame(self.df, geometry='geometry')
-        gdf = gdf.set_crs("EPSG:4326")  
+        gdf = gdf.set_crs("EPSG:4326")
+        self.ajouter_au_rapport('Préparation des données géographiques', 'Projection appliquée à EPSG:4326.')
         return gdf.to_crs(epsg=3857)  
     
-    def get_cleaned_json(self):
+    def creation_json(self):
         """
-        Retourne un DataFrame nettoyé avec les colonnes spécifiques et converti en format JSON.
-        Supprime les doublons et garde uniquement 'nom_quartier', 'numero_quartier' et 'secteur_geographique'.
+        Méthode pour créer un fichier JSON à partir des données nettoyées pour les utiliser dans le front-end.
         """
         df_cleaned = self.df[['nom_quartier', 'numero_quartier', 'secteur_geographique']]
-
         df_cleaned = df_cleaned.drop_duplicates()
-
         return df_cleaned.to_json(orient='records', lines=False)
 
-    def save_cleaned_data(self):
-
-        path = "datasets/dataset_clean.csv"
-
+    def sauvegarde_nettoyage(self):
+        """
+        Méthode pour sauvegarder les données nettoyées dans un fichier CSV.
+        """
+        path = "data/dataset_clean.csv"
         self.df.to_csv(path, index=False, sep=";")
-
         print(f"Le fichier {path} a été créé avec succès.")
     
+    def generation_rapport(self):
+        """
+        Méthode pour générer un rapport complet sur le nettoyage des données.
+        """
+        log_directory = "log"
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+        
+        # Création du nom du fichier de rapport avec la date et l'heure actuelle
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        report_file_path = os.path.join(log_directory, f"rapport_traitement_{current_time}.txt")
+        
+        report_str = "Compte Rendu du Traitement des Données:\n"
+        
+        for step, details in self.report.items():
+            report_str += f"\n{step}:\n{details}\n"
+        
+        with open(report_file_path, "w") as report_file:
+            report_file.write(report_str)
+        
+        print(f"Le rapport a été enregistré dans {report_file_path}")
+        return report_file_path
     
-    def clean_data(self):
+    def normalisation(self):
         """
-        Applique toutes les étapes de nettoyage aux données.
+        Méthode pour normaliser les colonnes 'loyers_majorés' et 'loyers_minores' (pour montrer que je sais utiliser la normalisation).
         """
-        self.rename_columns()
-        self.check_missing_values()
-        self.handle_furnishing()
-        self.convert_to_numeric()
-        self.transform_geometries()
-        self.save_cleaned_data()
-        return self.prepare_geo_data()
+        scaler = MinMaxScaler()
+        columns_to_normalize = ['loyers_majorés', 'loyers_minores']
+        self.df[columns_to_normalize] = scaler.fit_transform(self.df[columns_to_normalize])
+        
+        self.ajouter_au_rapport('Normalisation', f"Les colonnes {columns_to_normalize} ont été normalisées entre 0 et 1.")
+    
+    def standardisation(self):
+        """
+        Méthode pour standardiser les colonnes 'loyers_majorés' et 'loyers_minores' (pour montrer que je sais utiliser la standardisation).
+        """
+        scaler = StandardScaler()
+        columns_to_standardize = ['loyers_majorés', 'loyers_minores']
+        self.df[columns_to_standardize] = scaler.fit_transform(self.df[columns_to_standardize])
+        
+        self.ajouter_au_rapport('Standardisation', f"Les colonnes {columns_to_standardize} ont été standardisées.")
+    
+    def nettoyage(self):
+        """
+        Methode pour nettoyer les données en utilisant les méthodes de nettoyage définies.
+        """
+        self.renommer_colonnes()
+        self.verifcer_valeurs_manquantes()
+        self.conversion_type_location()
+        self.conversion_numerique()
+        self.conversion_geometrie()
+        self.normalisation()
+        self.standardisation() 
+        self.sauvegarde_nettoyage()
+        self.generation_rapport()
+        return self.preparation_geoDataframe()
