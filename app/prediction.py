@@ -94,47 +94,112 @@ class modeleDePrediction:
         else:
             print("Aucun modèle trouvé à cet emplacement.")
 
+
     def rapport_en_pdf(self, pdf_path="static/report.pdf"):
         """
         Méthode pour générer un rapport PDF contenant les informations sur les données, le modèle et les prédictions.
         """
+
+        # Je créé un objet FPDF
         pdf = FPDF()
         pdf.add_page()
 
+        # J'affiche le titre du rapport
         pdf.set_font("Arial", "B", 16)
         pdf.cell(200, 10, "Rapport d'analyse et de prédiction", ln=True, align="C")
         pdf.ln(10)
 
+        # Je créé une sous-section pour les informations sur les données
         pdf.set_font("Arial", size=12)
         pdf.cell(200, 10, "Analyse des données reçues:", ln=True)
-        pdf.multi_cell(0, 10, str(self.dataset.describe()))
 
-        pdf.ln(10)
+        # Je récupère les statistiques descriptives du dataset
+        data_description = self.dataset.describe()
+
+        # Je créé un tableau pour afficher les statistiques
+        headers = ['Statistiques'] + list(data_description.columns)
+        rows = data_description.reset_index().values.tolist()
+
+        # Je calcule la largeur des colonnes
+        col_widths = [60] + [40 for _ in range(len(data_description.columns))]
+        max_columns_per_line = 4
+
+        # Je dessine le tableau
+        def draw_table(start_idx=0):
+            """
+            Fonction pour dessiner un tableau à partir de `start_idx`.
+            Elle gère également l'ajout de pages si nécessaire.
+            """
+            # J'affiche les en-têtes du tableau
+            for i, header in enumerate(headers[start_idx:start_idx + max_columns_per_line]):
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(col_widths[i], 10, header, border=1, align="C")
+            pdf.ln()
+
+            # J'affiche les lignes du tableau
+            for row in rows:
+                for i, cell in enumerate(row[start_idx:start_idx + max_columns_per_line]):
+                    pdf.set_font("Arial", size=10)
+                    pdf.cell(col_widths[i], 10, str(cell), border=1, align="C")
+                pdf.ln()
+
+            pdf.ln(5)
+
+        # J'affiche le tableau des statistiques
+        num_columns = len(data_description.columns)
+        for i in range(0, num_columns, max_columns_per_line):
+            if pdf.get_y() + 40 > 280:  # Je check si un saut de page est nécessaire
+                pdf.add_page()
+            draw_table(i)
+
+        # Je créé une sous-section pour les colonnes utilisées dans le modèle
+        pdf.set_font("Arial", size=12)
         pdf.cell(200, 10, "Colonnes utilisées pour le modèle:", ln=True)
         pdf.multi_cell(0, 10, "Les colonnes utilisées sont :\n"
-                              "- 'epoque_construction'\n"
-                              "- 'nombre_pieces_principales'\n"
-                              "- 'type_location'\n"
-                              "- 'numero_quartier'\n"
-                              "- 'secteur_geographique'")
+                            "- 'epoque_construction'\n"
+                            "- 'nombre_pieces_principales'\n"
+                            "- 'type_location'\n"
+                            "- 'numero_quartier'\n"
+                            "- 'secteur_geographique'")
 
         pdf.ln(10)
+
+        # Je créé une sous-section pour l'entraînement du modèle et l'efficacité
         pdf.cell(200, 10, "Entraînement du modèle et efficacité:", ln=True)
-        self.entrainement_random_forest()
-        predictions = self.prediction(self.X_test)
-        mae = mean_absolute_error(self.y_test, predictions)
+        self.entrainement_random_forest()  # Entraînement du modèle
+        predictions = self.prediction(self.X_test)  # Génération des prédictions
+        mae = mean_absolute_error(self.y_test, predictions)  # Calcul de l'erreur
+
+        # Affichage des résultats dans le PDF
         pdf.multi_cell(0, 10, f"Le modèle a été entraîné avec un RandomForestRegressor.\n"
-                              f"L'erreur absolue moyenne calculé pour le modèle est de : {mae:.2f} euros ")
+                            f"L'erreur absolue moyenne calculée pour le modèle est de : {mae:.2f} euros ")
+
+        # Vérifie si un saut de page est nécessaire avant la prochaine section
+        if pdf.get_y() + 120 > 280:
+            pdf.add_page()
 
         pdf.ln(10)
+
+        # Section : Graphique des prédictions
         pdf.cell(200, 10, "Graphique des prédictions:", ln=True)
-        image_path = self.graphique_prediction()
-        pdf.image(image_path, x=10, y=pdf.get_y(), w=180)
+        image_path = self.graphique_prediction()  # Génération du graphique
 
+        # Taille de l'image à insérer
+        image_width = 180
+        image_height = 100
+
+        # Vérifie si un saut de page est nécessaire pour l'image
+        if pdf.get_y() + image_height > 280:
+            pdf.add_page()
+
+        # Ajout de l'image dans le PDF
+        pdf.image(image_path, x=10, y=pdf.get_y(), w=image_width, h=image_height)
+
+        # Sauvegarde du PDF
         pdf.output(pdf_path)
-
         print(f"Le rapport a été généré et sauvegardé dans : {pdf_path}")
         return pdf_path
+
 
     def generation_du_modele(self, model_file_path="model.pkl", pdf_report_path="static/report.pdf"):
         """

@@ -33,10 +33,10 @@ def index():
     # Récupération des datasets avec pagination
     datasets = api_client.liste_dataset_avec_pagination(offset=offset, limit=limit)
     
-    total_count = datasets.get('total_count', 0) if datasets else 0
+    total = datasets.get('total', 0) if datasets else 0
     
-    next_offset = offset + 1 if offset + limit < total_count else None
-    prev_offset = offset - 1 if offset > -1 else None
+    offset_suivant = offset + 1 if offset + limit < total else None
+    offset_precedent = offset - 1 if offset > -1 else None
     
     print(datasets.get('results', []))
     print('\n')
@@ -47,11 +47,11 @@ def index():
     return render_template(
         'index.html',
         datasets=datasets.get('results', []),
-        total_count=total_count,
+        total_count=total,
         limit=limit,
         offset=offset,
-        next_offset=next_offset,
-        prev_offset=prev_offset
+        next_offset=offset_suivant,
+        prev_offset=offset_precedent
     )
 
 # Route pour la page de détails d'un dataset '/mon-dataset' qui correspond au dataset sur lequel j'ai travaillé

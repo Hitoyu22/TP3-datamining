@@ -47,23 +47,23 @@ class DataProcessor:
             'geo_point_2d': 'geo_point_2d',
         }, inplace=True)
         
-        new_columns = self.df.columns
-        self.ajouter_au_rapport('Renommage des colonnes', f"Colonnes renommées: {list(set(new_columns) - set(old_columns))}")
+        nouvelles_colonnes = self.df.columns
+        self.ajouter_au_rapport('Renommage des colonnes', f"Colonnes renommées: {list(set(nouvelles_colonnes) - set(old_columns))}")
     
     def verifcer_valeurs_manquantes(self):
         """
         Méthode pour vérifier les valeurs manquantes dans le DataFrame et les remplacer par la moyenne.
         """
 
-        missing_values = self.df.isna().sum()
-        missing_report = missing_values[missing_values > 0].to_dict()
+        valeurs_manquantes = self.df.isna().sum()
+        valeurs_manquantes_rapportees = valeurs_manquantes[valeurs_manquantes > 0].to_dict()
         
         self.df['loyers_reference'] = self.df['loyers_reference'].fillna(self.df['loyers_reference'].mean())
         self.df['loyers_majorés'] = self.df['loyers_majorés'].fillna(self.df['loyers_majorés'].mean())
         self.df['loyers_minores'] = self.df['loyers_minores'].fillna(self.df['loyers_minores'].mean())
         self.df['nombre_pieces_principales'] = self.df['nombre_pieces_principales'].fillna(self.df['nombre_pieces_principales'].mean())
         
-        self.ajouter_au_rapport('Valeurs manquantes', missing_report)
+        self.ajouter_au_rapport('Valeurs manquantes', valeurs_manquantes_rapportees)
     
     def conversion_type_location(self):
         """
@@ -131,39 +131,39 @@ class DataProcessor:
             os.makedirs(log_directory)
         
         # Création du nom du fichier de rapport avec la date et l'heure actuelle
-        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        report_file_path = os.path.join(log_directory, f"rapport_traitement_{current_time}.txt")
+        temps_actuel = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        chemin_rapport = os.path.join(log_directory, f"rapport_traitement_{temps_actuel}.txt")
         
-        report_str = "Compte Rendu du Traitement des Données:\n"
+        rapport = "Compte Rendu du Traitement des Données:\n"
         
         for step, details in self.report.items():
-            report_str += f"\n{step}:\n{details}\n"
+            rapport += f"\n{step}:\n{details}\n"
         
-        with open(report_file_path, "w") as report_file:
-            report_file.write(report_str)
+        with open(chemin_rapport, "w") as report_file:
+            report_file.write(rapport)
         
-        print(f"Le rapport a été enregistré dans {report_file_path}")
-        return report_file_path
+        print(f"Le rapport a été enregistré dans {chemin_rapport}")
+        return chemin_rapport
     
     def normalisation(self):
         """
         Méthode pour normaliser les colonnes 'loyers_majorés' et 'loyers_minores' (pour montrer que je sais utiliser la normalisation).
         """
         scaler = MinMaxScaler()
-        columns_to_normalize = ['loyers_majorés', 'loyers_minores']
-        self.df[columns_to_normalize] = scaler.fit_transform(self.df[columns_to_normalize])
+        colonnes_normalisees = ['loyers_majorés', 'loyers_minores']
+        self.df[colonnes_normalisees] = scaler.fit_transform(self.df[colonnes_normalisees])
         
-        self.ajouter_au_rapport('Normalisation', f"Les colonnes {columns_to_normalize} ont été normalisées entre 0 et 1.")
+        self.ajouter_au_rapport('Normalisation', f"Les colonnes {colonnes_normalisees} ont été normalisées entre 0 et 1.")
     
     def standardisation(self):
         """
         Méthode pour standardiser les colonnes 'loyers_majorés' et 'loyers_minores' (pour montrer que je sais utiliser la standardisation).
         """
         scaler = StandardScaler()
-        columns_to_standardize = ['loyers_majorés', 'loyers_minores']
-        self.df[columns_to_standardize] = scaler.fit_transform(self.df[columns_to_standardize])
+        colonnes_standardisées = ['loyers_majorés', 'loyers_minores']
+        self.df[colonnes_standardisées] = scaler.fit_transform(self.df[colonnes_standardisées])
         
-        self.ajouter_au_rapport('Standardisation', f"Les colonnes {columns_to_standardize} ont été standardisées.")
+        self.ajouter_au_rapport('Standardisation', f"Les colonnes {colonnes_standardisées} ont été standardisées.")
     
     def nettoyage(self):
         """
